@@ -8,8 +8,6 @@ package com.cognizant.insurance.controller;
 import com.cognizant.insurance.entity.enums.Role;
 import com.cognizant.insurance.security.CustomUserDetails;
 import com.cognizant.insurance.service.AuthService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,7 +17,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
 
