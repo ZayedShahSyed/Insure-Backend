@@ -24,7 +24,7 @@ User (ADMIN | CUSTOMER) owns/acts on all of the above
 - **`Claim`** is filed against a `PolicyEnrollment` and reviewed by an ADMIN `User`; has `reviewedBy`, `reviewedAt`, and `adminRemarks` fields; also holds a direct `customer` FK (redundant with enrollment but present in entity)
 
 ### User Roles
-`Role` enum: `ADMIN`, `CUSTOMER`. Spring Security is included but not yet configured — security config must be added.
+`Role` enum: `ADMIN`, `CUSTOMER`. Spring Security is fully configured (see below).
 
 `User` entity (table: `users`) includes: `fullName`, `email`, `passwordHash`, `phone`, `role`, `dateOfBirth`, `gender`, `address`, `city`, `state`, `pincode`, `occupation`, `profilePhotoUrl`, `isActive`, `lastLoginAt`. The `User.policies` collection maps to `Policy.createdBy` (i.e., policies an ADMIN created, not a customer's purchased policies — that's `User.policyEnrollments`).
 
@@ -42,20 +42,54 @@ Every entity uses `@CreationTimestamp` / `@UpdateTimestamp` from Hibernate — d
 - `PolicyPlan.tenureOptions` is a `List<Integer>` stored as a JSON column (e.g., `[1, 2, 3]` for selectable tenure years) using `@JdbcTypeCode(SqlTypes.JSON)`.
 - `PolicyPlan` also has `renewalAllowed` (`TINYINT(1) DEFAULT 1`) in addition to `isActive`.
 
-## Layer Conventions (to be implemented)
+## Layer Conventions
 Scaffold follows standard Spring layering:
 - `controller/` → `@RestController` REST endpoints  
-- `service/` → business logic interfaces + implementations  
+- `service/` → business logic (concrete classes, no interfaces so far)  
 - `repository/` → `JpaRepository` extensions  
+- `dto/` → request/response objects (e.g., `PolicyCategoryRequest`)  
+- `security/` → JWT auth filter, token service, security config, `CustomUserDetails`
 
-All three directories exist but are **currently empty** — no controllers, services, or repositories have been implemented yet.
+### DTO Patterns
+- Request DTOs: Lombok `@Data @AllArgsConstructor @NoArgsConstructor`; fields nullable for partial updates.
+- Response DTOs: Lombok `@Data` with a static `from(Entity)` factory method for entity-to-DTO conversion (see `PolicyResponse.from(Policy)`).
 
-No DTOs directory exists yet — add a `dto/` package alongside `entity/` when creating request/response objects.
+### Implemented Layers
+| Layer | Implemented |
+|-------|-------------|
+| `AuthController` | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` |
+| `PolicyCategoryController` | CRUD at `/api/policy-categories` (create, getById, update, delete, getAll, reactivate) |
+| `PolicyController` | CRUD at `/api/policies` (create, getById, getAll, update, delete, reactivate); create/update/delete/reactivate require `ADMIN` via `@PreAuthorize` |
+| `AuthService` | Implements `UserDetailsService`; handles register/login with JWT |
+| `PolicyCategoryService` | CRUD + soft-delete/reactivate for `PolicyCategory` |
+| `PolicyService` | CRUD + soft-delete/reactivate for `Policy`; generates `policyCode` as `POL-<UUID8>`; partial updates (null fields skipped) |
+| `UserRepository` | `findByEmail`, `existsByEmail`, `existsByPhone` |
+| `PolicyCategoryRepository` | `existsByName` |
+| `PolicyRepository` | `existsByName`, `findByIsActiveTrue` (JOIN FETCH category+createdBy), `findByIdWithRelations` |
+
+## Security
+
+### JWT Authentication
+- Stateless sessions; CSRF disabled.
+- `JwtAuthenticationFilter` (extends `OncePerRequestFilter`) extracts Bearer token from `Authorization` header.
+- `JwtTokenService` uses HMAC key from `com.jwt.secret` property; tokens expire in 24h; subject = user email; extra claim: `role`.
+- `CustomUserDetails` wraps `User` entity; authority is `ROLE_<role>`.
+
+### URL Authorization Rules
+```
+/api/auth/**              → permitAll
+GET /api/policies/**      → permitAll
+GET /api/categories/**    → permitAll
+/api/admin/**             → ADMIN only
+everything else           → authenticated
+```
+Method-level security enabled via `@EnableMethodSecurity`.
 
 ## Database
 - **MySQL** at `localhost:3306/insurance` (user: `root`, password: `root`)
 - `spring.jpa.hibernate.ddl-auto=update` — schema auto-updates on startup; no migration tool (Flyway/Liquibase) configured
 - `spring.jpa.show-sql=true` — SQL logged to console in dev
+- `com.jwt.secret` — HMAC signing key for JWT tokens
 
 ## Build & Run
 ```powershell
@@ -76,5 +110,13 @@ No DTOs directory exists yet — add a `dto/` package alongside `entity/` when c
 | `entity/Policy.java` | JSON columns for benefits/exclusions/documents |
 | `entity/PolicyEnrollment.java` | Core transactional entity linking customer→plan |
 | `entity/enums/` | All domain state machines (ClaimStatus, EnrollmentStatus, etc.) |
-| `application.properties` | DB config; no profiles defined yet |
+| `security/SecurityConfiguration.java` | Filter chain, auth rules, BCrypt encoder beans |
+| `security/JwtTokenService.java` | Token generation/validation (JJWT library) |
+| `security/JwtAuthenticationFilter.java` | Extracts & validates Bearer token per request |
+| `security/CustomUserDetails.java` | Adapts `User` entity to Spring Security `UserDetails` |
+| `service/AuthService.java` | Register/login logic + `UserDetailsService` impl |
+| `controller/AuthController.java` | Auth endpoints (register, login, me) |
+| `dto/PolicyCategoryRequest.java` | Example DTO pattern (Lombok `@Data`) |
+| `dto/PolicyResponse.java` | Response DTO with static `from(Entity)` factory method pattern |
+| `application.properties` | DB config, JWT secret; no profiles defined yet |
 

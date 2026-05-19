@@ -1,15 +1,15 @@
 package com.cognizant.insurance.service;
 
-import com.cognizant.insurance.controller.AuthController;
 import com.cognizant.insurance.entity.User;
 import com.cognizant.insurance.entity.enums.Role;
 import com.cognizant.insurance.repository.UserRepository;
 import com.cognizant.insurance.security.CustomUserDetails;
 import com.cognizant.insurance.security.JwtTokenService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,20 +22,25 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
-    private final AuthenticationManager authenticationManager;
+    private final AuthenticationConfiguration authenticationConfiguration;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenService jwtTokenService, AuthenticationManager authenticationManager) {
+    public AuthService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder,
+                       JwtTokenService jwtTokenService, AuthenticationConfiguration authenticationConfiguration) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenService = jwtTokenService;
-        this.authenticationManager = authenticationManager;
+        this.authenticationConfiguration = authenticationConfiguration;
     }
+
+    private AuthenticationManager getAuthenticationManager() throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -79,7 +84,7 @@ public class AuthService implements UserDetailsService {
     @Transactional
     public Map<String, Object> login(String email, String password) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
+            Authentication authentication = getAuthenticationManager().authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
@@ -104,6 +109,8 @@ public class AuthService implements UserDetailsService {
             );
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException("Invalid email or password");
+        } catch (Exception e) {
+            throw new RuntimeException("Authentication failed", e);
         }
     }
 }

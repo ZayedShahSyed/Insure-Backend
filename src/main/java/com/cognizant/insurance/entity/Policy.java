@@ -26,7 +26,7 @@ public class Policy {
     @Column(name = "policy_code", unique = true, nullable = false, length = 50)
     private String policyCode;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 200,unique = true)
     private String name;
 
     @Enumerated(EnumType.STRING)

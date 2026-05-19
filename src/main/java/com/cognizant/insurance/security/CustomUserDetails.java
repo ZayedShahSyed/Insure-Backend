@@ -2,7 +2,6 @@ package com.cognizant.insurance.security;
 
 import com.cognizant.insurance.entity.User;
 import com.cognizant.insurance.entity.enums.Role;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,7 +9,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
