@@ -72,8 +72,15 @@ public class ClaimService {
         claim.setDescription(request.getDescription());
         claim.setClaimedAmount(request.getClaimedAmount());
         claim.setStatus(ClaimStatus.PENDING);
-        if (request.getClaimType() != null) {
-            claim.setClaimType(ClaimType.valueOf(request.getClaimType()));
+        // Auto-derive claim type from policy category
+        try {
+            String categoryName = enrollment.getPolicyPlan().getPolicy().getCategory().getName().toUpperCase().replace(" ", "_");
+            claim.setClaimType(ClaimType.valueOf(categoryName));
+        } catch (Exception e) {
+            // fallback to request value if category doesn't match enum
+            if (request.getClaimType() != null) {
+                claim.setClaimType(ClaimType.valueOf(request.getClaimType()));
+            }
         }
         if (request.getDocuments() != null) {
             claim.setDocuments(request.getDocuments());
@@ -101,9 +108,22 @@ public class ClaimService {
                 .collect(Collectors.toList());
     }
 
+    public List<ClaimResponse> getClaimsByPolicyCreator(Long adminId) {
+        return claimRepository.findByPolicyCreatorId(adminId).stream()
+                .map(ClaimResponse::from)
+                .collect(Collectors.toList());
+    }
+
     public List<ClaimResponse> getClaimsByStatus(String status) {
         ClaimStatus claimStatus = ClaimStatus.valueOf(status);
         return claimRepository.findByStatus(claimStatus).stream()
+                .map(ClaimResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public List<ClaimResponse> getClaimsByStatusAndCreator(String status, Long adminId) {
+        ClaimStatus claimStatus = ClaimStatus.valueOf(status);
+        return claimRepository.findByPolicyCreatorIdAndStatus(adminId, claimStatus).stream()
                 .map(ClaimResponse::from)
                 .collect(Collectors.toList());
     }
@@ -112,6 +132,11 @@ public class ClaimService {
     public ClaimResponse reviewClaim(Long claimId, Long adminId, ClaimReviewRequest request) {
         Claim claim = claimRepository.findByIdWithDetails(claimId)
                 .orElseThrow(() -> new RuntimeException("Claim not found with id: " + claimId));
+
+        // Validate admin owns the policy
+        if (!claim.getEnrollment().getPolicyPlan().getPolicy().getCreatedBy().getId().equals(adminId)) {
+            throw new RuntimeException("You can only review claims for policies you created");
+        }
 
         ClaimStatus newStatus = ClaimStatus.valueOf(request.getStatus());
 

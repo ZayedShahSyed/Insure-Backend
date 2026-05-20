@@ -106,6 +106,18 @@ public class PolicyEnrollmentService {
                 .collect(Collectors.toList());
     }
 
+    public List<EnrollmentResponse> getAllEnrollments() {
+        return enrollmentRepository.findAllWithDetails().stream()
+                .map(EnrollmentResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public List<EnrollmentResponse> getEnrollmentsByPolicyCreator(Long adminId) {
+        return enrollmentRepository.findByPolicyCreatorId(adminId).stream()
+                .map(EnrollmentResponse::from)
+                .collect(Collectors.toList());
+    }
+
     public EnrollmentResponse getEnrollmentById(Long id) {
         PolicyEnrollment enrollment = enrollmentRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
@@ -116,6 +128,11 @@ public class PolicyEnrollmentService {
     public EnrollmentResponse approveEnrollment(Long enrollmentId, Long adminId) {
         PolicyEnrollment enrollment = enrollmentRepository.findByIdWithDetails(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        // Validate admin owns the policy
+        if (!enrollment.getPolicyPlan().getPolicy().getCreatedBy().getId().equals(adminId)) {
+            throw new RuntimeException("You can only manage enrollments for policies you created");
+        }
 
         if (enrollment.getStatus() != EnrollmentStatus.PENDING) {
             throw new RuntimeException("Only PENDING enrollments can be approved");
@@ -134,9 +151,16 @@ public class PolicyEnrollmentService {
     }
 
     @Transactional
-    public EnrollmentResponse cancelEnrollment(Long enrollmentId) {
+    public EnrollmentResponse cancelEnrollment(Long enrollmentId, Long userId) {
         PolicyEnrollment enrollment = enrollmentRepository.findByIdWithDetails(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        // Allow if user is the customer who owns the enrollment OR admin who created the policy
+        boolean isCustomer = enrollment.getCustomer().getId().equals(userId);
+        boolean isPolicyAdmin = enrollment.getPolicyPlan().getPolicy().getCreatedBy().getId().equals(userId);
+        if (!isCustomer && !isPolicyAdmin) {
+            throw new RuntimeException("You do not have permission to cancel this enrollment");
+        }
 
         if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
             throw new RuntimeException("Enrollment is already cancelled");

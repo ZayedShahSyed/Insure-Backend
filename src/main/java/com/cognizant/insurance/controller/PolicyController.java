@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,25 +46,48 @@ public class PolicyController {
         return ResponseEntity.ok(policies);
     }
 
+    // Admin sees only their own policies (for management)
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PolicyResponse>> getMyPolicies() {
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        List<PolicyResponse> policies = policyService.getPoliciesByCreator(adminId)
+                .stream()
+                .map(PolicyResponse::from)
+                .toList();
+        return ResponseEntity.ok(policies);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyResponse> updatePolicy(@PathVariable Long id,
                                                        @RequestBody PolicyRequest request) {
-        Policy policy = policyService.updatePolicy(id, request);
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        Policy policy = policyService.updatePolicy(id, request, adminId);
         return ResponseEntity.ok(PolicyResponse.from(policy));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyResponse> deletePolicy(@PathVariable Long id) {
-        Policy policy = policyService.deletePolicy(id);
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        Policy policy = policyService.deletePolicy(id, adminId);
         return ResponseEntity.ok(PolicyResponse.from(policy));
     }
 
     @PatchMapping("/{id}/reactivate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PolicyResponse> reactivatePolicy(@PathVariable Long id) {
-        Policy policy = policyService.reactivatePolicy(id);
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        Policy policy = policyService.reactivatePolicy(id, adminId);
         return ResponseEntity.ok(PolicyResponse.from(policy));
     }
 }

@@ -49,6 +49,15 @@ public class PolicyEnrollmentController {
         return ResponseEntity.ok(enrollmentService.getEnrollmentsByPolicy(policyId));
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EnrollmentResponse>> getAllEnrollments() {
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        return ResponseEntity.ok(enrollmentService.getEnrollmentsByPolicyCreator(adminId));
+    }
+
     @PutMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EnrollmentResponse> approveEnrollment(@PathVariable Long id) {
@@ -60,7 +69,10 @@ public class PolicyEnrollmentController {
 
     @PutMapping("/{id}/cancel")
     public ResponseEntity<EnrollmentResponse> cancelEnrollment(@PathVariable Long id) {
-        return ResponseEntity.ok(enrollmentService.cancelEnrollment(id));
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        return ResponseEntity.ok(enrollmentService.cancelEnrollment(id, userId));
     }
 }
 

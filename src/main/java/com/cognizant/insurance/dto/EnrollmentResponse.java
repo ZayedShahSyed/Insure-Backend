@@ -22,6 +22,10 @@ public class EnrollmentResponse {
     private String paymentStatus;
     private String status;
     private String customerName;
+    private String customerEmail;
+    private String customerPhone;
+    private BigDecimal coverageAmount;
+    private String policyType;
     private LocalDateTime approvedAt;
     private String approvedBy;
     private List<EnrollmentPersonResponse> members;
@@ -40,6 +44,10 @@ public class EnrollmentResponse {
         response.setPaymentStatus(enrollment.getPaymentStatus().name());
         response.setStatus(enrollment.getStatus().name());
         response.setCustomerName(enrollment.getCustomer().getFullName());
+        response.setCustomerEmail(enrollment.getCustomer().getEmail());
+        response.setCustomerPhone(enrollment.getCustomer().getPhone());
+        response.setCoverageAmount(enrollment.getPolicyPlan().getCoverageAmount());
+        response.setPolicyType(enrollment.getPolicyPlan().getPolicy().getPolicyType() != null ? enrollment.getPolicyPlan().getPolicy().getPolicyType().name() : null);
         response.setApprovedAt(enrollment.getApprovedAt());
         response.setApprovedBy(enrollment.getApprovedBy() != null ? enrollment.getApprovedBy().getFullName() : null);
         if (enrollment.getEnrollmentPeople() != null) {

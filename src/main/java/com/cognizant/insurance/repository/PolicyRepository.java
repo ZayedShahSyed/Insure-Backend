@@ -20,4 +20,7 @@ public interface PolicyRepository extends JpaRepository<Policy,Long> {
 
     @Query("SELECT p FROM Policy p JOIN FETCH p.category JOIN FETCH p.createdBy WHERE p.id = :id")
     Optional<Policy> findByIdWithRelations(Long id);
+
+    @Query("SELECT p FROM Policy p JOIN FETCH p.category JOIN FETCH p.createdBy WHERE p.createdBy.id = :adminId")
+    List<Policy> findByCreatedById(Long adminId);
 }

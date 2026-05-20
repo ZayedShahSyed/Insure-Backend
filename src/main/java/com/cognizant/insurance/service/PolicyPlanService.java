@@ -25,9 +25,10 @@ public class PolicyPlanService {
     }
 
     @Transactional
-    public PolicyPlanResponse createPlan(Long policyId, PolicyPlanRequest request) {
-        Policy policy = policyRepository.findById(policyId)
+    public PolicyPlanResponse createPlan(Long policyId, PolicyPlanRequest request, Long adminId) {
+        Policy policy = policyRepository.findByIdWithRelations(policyId)
                 .orElseThrow(() -> new RuntimeException("Policy not found with id: " + policyId));
+        validateOwnership(policy, adminId);
 
         PolicyPlan plan = new PolicyPlan();
         plan.setPolicy(policy);
@@ -48,9 +49,10 @@ public class PolicyPlanService {
     }
 
     @Transactional
-    public PolicyPlanResponse updatePlan(Long planId, PolicyPlanRequest request) {
-        PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(planId)
+    public PolicyPlanResponse updatePlan(Long planId, PolicyPlanRequest request, Long adminId) {
+        PolicyPlan plan = policyPlanRepository.findByIdWithPolicy(planId)
                 .orElseThrow(() -> new RuntimeException("Policy plan not found with id: " + planId));
+        validateOwnership(plan.getPolicy(), adminId);
 
         if (request.getPlanName() != null) plan.setPlanName(request.getPlanName());
         if (request.getCoverageAmount() != null) plan.setCoverageAmount(request.getCoverageAmount());
@@ -78,11 +80,17 @@ public class PolicyPlanService {
     }
 
     @Transactional
-    public void deactivatePlan(Long planId) {
-        PolicyPlan plan = policyPlanRepository.findById(planId)
+    public void deactivatePlan(Long planId, Long adminId) {
+        PolicyPlan plan = policyPlanRepository.findByIdWithPolicy(planId)
                 .orElseThrow(() -> new RuntimeException("Policy plan not found with id: " + planId));
+        validateOwnership(plan.getPolicy(), adminId);
         plan.setIsActive(false);
         policyPlanRepository.save(plan);
     }
-}
 
+    private void validateOwnership(Policy policy, Long adminId) {
+        if (!policy.getCreatedBy().getId().equals(adminId)) {
+            throw new RuntimeException("You can only manage plans for policies you created");
+        }
+    }
+}
