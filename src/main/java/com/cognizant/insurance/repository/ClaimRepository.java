@@ -30,6 +30,12 @@ public interface ClaimRepository extends JpaRepository<Claim, Long> {
     List<Claim> findByCustomerIdWithDetails(Long customerId);
 
     List<Claim> findByEnrollmentId(Long enrollmentId);
+
+    @Query("SELECT c FROM Claim c LEFT JOIN FETCH c.customer LEFT JOIN FETCH c.enrollment e LEFT JOIN FETCH e.policyPlan pp LEFT JOIN FETCH pp.policy p WHERE p.createdBy.id = :adminId ORDER BY c.createdAt DESC")
+    List<Claim> findByPolicyCreatorId(Long adminId);
+
+    @Query("SELECT c FROM Claim c LEFT JOIN FETCH c.customer LEFT JOIN FETCH c.enrollment e LEFT JOIN FETCH e.policyPlan pp LEFT JOIN FETCH pp.policy p WHERE p.createdBy.id = :adminId AND c.status = :status ORDER BY c.createdAt DESC")
+    List<Claim> findByPolicyCreatorIdAndStatus(Long adminId, ClaimStatus status);
 }
 
 

@@ -48,18 +48,24 @@ public class ClaimController {
         return ResponseEntity.ok(claimService.getClaimById(id));
     }
 
-    // Admin: get all claims
+    // Admin: get all claims (only for policies created by this admin)
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ClaimResponse>> getAllClaims() {
-        return ResponseEntity.ok(claimService.getAllClaims());
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        return ResponseEntity.ok(claimService.getClaimsByPolicyCreator(adminId));
     }
 
-    // Admin: filter claims by status
+    // Admin: filter claims by status (only for policies created by this admin)
     @GetMapping("/status/{status}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ClaimResponse>> getClaimsByStatus(@PathVariable String status) {
-        return ResponseEntity.ok(claimService.getClaimsByStatus(status));
+        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long adminId = userDetails.getUser().getId();
+        return ResponseEntity.ok(claimService.getClaimsByStatusAndCreator(status, adminId));
     }
 
     // Admin: review/approve/reject a claim

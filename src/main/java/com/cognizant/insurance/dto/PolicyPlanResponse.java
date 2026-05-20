@@ -15,10 +15,10 @@ public class PolicyPlanResponse {
     private String premiumBasis;
     private List<Integer> tenureOptions;
     private Integer maxMembers;
-    private BigDecimal roomRentLimit;
     private Boolean renewalAllowed;
     private Long policyId;
     private String policyName;
+    private String policyType;
 
     public static PolicyPlanResponse from(PolicyPlan plan) {
         PolicyPlanResponse response = new PolicyPlanResponse();
@@ -29,10 +29,10 @@ public class PolicyPlanResponse {
         response.setPremiumBasis(plan.getPremiumBasis() != null ? plan.getPremiumBasis().name() : null);
         response.setTenureOptions(plan.getTenureOptions());
         response.setMaxMembers(plan.getMaxMembers());
-        response.setRoomRentLimit(plan.getRoomRentLimit());
         response.setRenewalAllowed(plan.getRenewalAllowed());
         response.setPolicyId(plan.getPolicy().getId());
         response.setPolicyName(plan.getPolicy().getName());
+        response.setPolicyType(plan.getPolicy().getPolicyType() != null ? plan.getPolicy().getPolicyType().name() : null);
         return response;
     }
 }

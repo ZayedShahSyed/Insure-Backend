@@ -58,62 +58,59 @@ public class PolicyService {
         return policyRepository.findAll();
     }
 
+    public List<Policy> getActivePolicies() {
+        return policyRepository.findByIsActiveTrue();
+    }
+
+    public List<Policy> getPoliciesByCreator(Long adminId) {
+        return policyRepository.findByCreatedById(adminId);
+    }
+
     @Transactional
-    public Policy updatePolicy(Long id, PolicyRequest request) {
+    public Policy updatePolicy(Long id, PolicyRequest request, Long adminId) {
         Policy existingPolicy = getPolicyById(id);
+        validateOwnership(existingPolicy, adminId);
         if (request.getName() != null && !request.getName().equals(existingPolicy.getName())) {
             if (policyRepository.existsByName(request.getName())) {
                 throw new IllegalArgumentException("Policy with this name already exists");
             }
             existingPolicy.setName(request.getName());
         }
-        if (request.getDescription() != null) {
-            existingPolicy.setDescription(request.getDescription());
-        }
-        if (request.getPolicyType() != null) {
-            existingPolicy.setPolicyType(request.getPolicyType());
-        }
+        if (request.getDescription() != null) existingPolicy.setDescription(request.getDescription());
+        if (request.getPolicyType() != null) existingPolicy.setPolicyType(request.getPolicyType());
         if (request.getCategoryId() != null) {
             PolicyCategory category = policyCategoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new IllegalArgumentException("Policy category not found with id: " + request.getCategoryId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Policy category not found"));
             existingPolicy.setCategory(category);
         }
-        if (request.getBenefits() != null) {
-            existingPolicy.setBenefits(request.getBenefits());
-        }
-        if (request.getExclusions() != null) {
-            existingPolicy.setExclusions(request.getExclusions());
-        }
-        if (request.getDocuments() != null) {
-            existingPolicy.setDocuments(request.getDocuments());
-        }
-        if (request.getMinAge() != null) {
-            existingPolicy.setMinAge(request.getMinAge());
-        }
-        if (request.getMaxAge() != null) {
-            existingPolicy.setMaxAge(request.getMaxAge());
-        }
-        if (request.getWaitingPeriodDays() != null) {
-            existingPolicy.setWaitingPeriodDays(request.getWaitingPeriodDays());
-        }
+        if (request.getBenefits() != null) existingPolicy.setBenefits(request.getBenefits());
+        if (request.getExclusions() != null) existingPolicy.setExclusions(request.getExclusions());
+        if (request.getDocuments() != null) existingPolicy.setDocuments(request.getDocuments());
+        if (request.getMinAge() != null) existingPolicy.setMinAge(request.getMinAge());
+        if (request.getMaxAge() != null) existingPolicy.setMaxAge(request.getMaxAge());
+        if (request.getWaitingPeriodDays() != null) existingPolicy.setWaitingPeriodDays(request.getWaitingPeriodDays());
         return policyRepository.save(existingPolicy);
     }
 
     @Transactional
-    public Policy deletePolicy(Long id) {
+    public Policy deletePolicy(Long id, Long adminId) {
         Policy policy = getPolicyById(id);
+        validateOwnership(policy, adminId);
         policy.setIsActive(false);
         return policyRepository.save(policy);
     }
 
-    public List<Policy> getActivePolicies() {
-        return policyRepository.findByIsActiveTrue();
-    }
-
     @Transactional
-    public Policy reactivatePolicy(Long id) {
+    public Policy reactivatePolicy(Long id, Long adminId) {
         Policy policy = getPolicyById(id);
+        validateOwnership(policy, adminId);
         policy.setIsActive(true);
         return policyRepository.save(policy);
+    }
+
+    private void validateOwnership(Policy policy, Long adminId) {
+        if (!policy.getCreatedBy().getId().equals(adminId)) {
+            throw new RuntimeException("You can only manage policies you created");
+        }
     }
 }

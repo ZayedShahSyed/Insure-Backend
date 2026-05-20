@@ -32,15 +32,12 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
         String phone = request.get("phone");
-        String roleStr = request.get("role");
 
         if (fullName == null || email == null || password == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "fullName, email, and password are required"));
         }
 
-        Role role = (roleStr != null) ? Role.valueOf(roleStr.toUpperCase()) : Role.CUSTOMER;
-
-        Map<String, Object> response = authService.register(fullName, email, password, phone, role);
+        Map<String, Object> response = authService.register(fullName, email, password, phone, Role.CUSTOMER);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
