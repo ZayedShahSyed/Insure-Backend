@@ -1,13 +1,14 @@
 package com.cognizant.insurance.dto;
 
-import com.cognizant.insurance.entity.PolicyEnrollment;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.cognizant.insurance.entity.PolicyEnrollment;
+
+import lombok.Data;
 
 @Data
 public class EnrollmentResponse {
@@ -21,6 +22,7 @@ public class EnrollmentResponse {
     private LocalDate endDate;
     private String paymentStatus;
     private String status;
+    private Long customerId;
     private String customerName;
     private String customerEmail;
     private String customerPhone;
@@ -43,6 +45,7 @@ public class EnrollmentResponse {
         response.setEndDate(enrollment.getEndDate());
         response.setPaymentStatus(enrollment.getPaymentStatus().name());
         response.setStatus(enrollment.getStatus().name());
+        response.setCustomerId(enrollment.getCustomer().getId());
         response.setCustomerName(enrollment.getCustomer().getFullName());
         response.setCustomerEmail(enrollment.getCustomer().getEmail());
         response.setCustomerPhone(enrollment.getCustomer().getPhone());

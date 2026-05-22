@@ -1,27 +1,35 @@
 package com.cognizant.insurance.service;
 
-import com.cognizant.insurance.dto.PolicyPlanRequest;
-import com.cognizant.insurance.dto.PolicyPlanResponse;
-import com.cognizant.insurance.entity.Policy;
-import com.cognizant.insurance.entity.PolicyPlan;
-import com.cognizant.insurance.entity.enums.PremiumBasis;
-import com.cognizant.insurance.repository.PolicyPlanRepository;
-import com.cognizant.insurance.repository.PolicyRepository;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.cognizant.insurance.dto.PolicyPlanRequest;
+import com.cognizant.insurance.dto.PolicyPlanResponse;
+import com.cognizant.insurance.entity.Policy;
+import com.cognizant.insurance.entity.PolicyEnrollment;
+import com.cognizant.insurance.entity.PolicyPlan;
+import com.cognizant.insurance.entity.enums.EnrollmentStatus;
+import com.cognizant.insurance.entity.enums.PremiumBasis;
+import com.cognizant.insurance.repository.PolicyEnrollmentRepository;
+import com.cognizant.insurance.repository.PolicyPlanRepository;
+import com.cognizant.insurance.repository.PolicyRepository;
 
 @Service
 public class PolicyPlanService {
 
     private final PolicyPlanRepository policyPlanRepository;
     private final PolicyRepository policyRepository;
+    private final PolicyEnrollmentRepository enrollmentRepository;
 
-    public PolicyPlanService(PolicyPlanRepository policyPlanRepository, PolicyRepository policyRepository) {
+    public PolicyPlanService(PolicyPlanRepository policyPlanRepository,
+                             PolicyRepository policyRepository,
+                             PolicyEnrollmentRepository enrollmentRepository) {
         this.policyPlanRepository = policyPlanRepository;
         this.policyRepository = policyRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     @Transactional
@@ -86,6 +94,13 @@ public class PolicyPlanService {
         validateOwnership(plan.getPolicy(), adminId);
         plan.setIsActive(false);
         policyPlanRepository.save(plan);
+        // Cancel all active/pending enrollments under this plan
+        List<PolicyEnrollment> affected = enrollmentRepository.findByPolicyPlan_IdAndStatusIn(
+                planId, List.of(EnrollmentStatus.ACTIVE, EnrollmentStatus.PENDING));
+        for (PolicyEnrollment e : affected) {
+            e.setStatus(EnrollmentStatus.CANCELLED);
+        }
+        enrollmentRepository.saveAll(affected);
     }
 
     private void validateOwnership(Policy policy, Long adminId) {

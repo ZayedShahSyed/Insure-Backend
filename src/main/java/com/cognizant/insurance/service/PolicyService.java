@@ -3,23 +3,31 @@ package com.cognizant.insurance.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.cognizant.insurance.dto.PolicyRequest;
 import com.cognizant.insurance.entity.Policy;
 import com.cognizant.insurance.entity.PolicyCategory;
+import com.cognizant.insurance.entity.PolicyEnrollment;
 import com.cognizant.insurance.entity.User;
+import com.cognizant.insurance.entity.enums.EnrollmentStatus;
 import com.cognizant.insurance.repository.PolicyCategoryRepository;
+import com.cognizant.insurance.repository.PolicyEnrollmentRepository;
 import com.cognizant.insurance.repository.PolicyRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PolicyService {
     private final PolicyRepository policyRepository;
     private final PolicyCategoryRepository policyCategoryRepository;
+    private final PolicyEnrollmentRepository enrollmentRepository;
 
-    public PolicyService(PolicyRepository policyRepository, PolicyCategoryRepository policyCategoryRepository) {
+    public PolicyService(PolicyRepository policyRepository,
+                         PolicyCategoryRepository policyCategoryRepository,
+                         PolicyEnrollmentRepository enrollmentRepository) {
         this.policyRepository = policyRepository;
         this.policyCategoryRepository = policyCategoryRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     @Transactional
@@ -97,7 +105,15 @@ public class PolicyService {
         Policy policy = getPolicyById(id);
         validateOwnership(policy, adminId);
         policy.setIsActive(false);
-        return policyRepository.save(policy);
+        policyRepository.save(policy);
+        // Cancel all active/pending enrollments under this policy
+        List<PolicyEnrollment> affected = enrollmentRepository.findByPolicyPlan_Policy_IdAndStatusIn(
+                id, List.of(EnrollmentStatus.ACTIVE, EnrollmentStatus.PENDING));
+        for (PolicyEnrollment e : affected) {
+            e.setStatus(EnrollmentStatus.CANCELLED);
+        }
+        enrollmentRepository.saveAll(affected);
+        return policy;
     }
 
     @Transactional
