@@ -60,12 +60,38 @@ Scaffold follows standard Spring layering:
 | `AuthController` | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` |
 | `PolicyCategoryController` | CRUD at `/api/policy-categories` (create, getById, update, delete, getAll, reactivate) |
 | `PolicyController` | CRUD at `/api/policies` (create, getById, getAll, update, delete, reactivate); create/update/delete/reactivate require `ADMIN` via `@PreAuthorize` |
+| `PolicyPlanController` | CRUD at `/api/policy-plans`; `POST` / `PUT /{id}` / `DELETE /{id}` require ADMIN; `GET /policy/{policyId}`, `GET /{id}` public |
+| `PolicyEnrollmentController` | `/api/enrollments`; `POST` (CUSTOMER), `GET /my`, `GET /{id}`, `GET /policy/{policyId}` (ADMIN), `GET /all` (ADMIN), `PUT /{id}/approve` (ADMIN), `PUT /{id}/cancel` |
+| `ClaimController` | `/api/claims`; `POST` (CUSTOMER), `GET /my` (CUSTOMER), `GET /{id}`, `GET /all` (ADMIN), `GET /status/{status}` (ADMIN), `PUT /{id}/review` (ADMIN) |
+| `AdminDashboardController` | `/api/admin/dashboard` (ADMIN), `/api/admin/users` (ADMIN — lists customers) |
+| `CustomerDashboardController` | `GET /api/customer/dashboard` (CUSTOMER) |
+| `GlobalExceptionHandler` | `@RestControllerAdvice`; handles `MethodArgumentNotValidException` → 400 with field errors map |
 | `AuthService` | Implements `UserDetailsService`; handles register/login with JWT |
 | `PolicyCategoryService` | CRUD + soft-delete/reactivate for `PolicyCategory` |
 | `PolicyService` | CRUD + soft-delete/reactivate for `Policy`; generates `policyCode` as `POL-<UUID8>`; partial updates (null fields skipped) |
-| `UserRepository` | `findByEmail`, `existsByEmail`, `existsByPhone` |
+| `PolicyPlanService` | CRUD + soft-deactivate for `PolicyPlan` |
+| `PolicyEnrollmentService` | Enroll, approve, cancel; generates `enrollmentNumber`; scoped queries by customer or policy creator |
+| `ClaimService` | Submit, review (approve/reject); generates `claimNumber`; admin queries scoped to policies they created |
+| `AdminDashboardService` | Aggregates counts (customers, enrollments by status, claims by status) |
+| `CustomerDashboardService` | Aggregates a single customer's enrollments/claims data |
+| `UserRepository` | `findByEmail`, `existsByEmail`, `existsByPhone`, `countByRole`, `findByRole` |
 | `PolicyCategoryRepository` | `existsByName` |
 | `PolicyRepository` | `existsByName`, `findByIsActiveTrue` (JOIN FETCH category+createdBy), `findByIdWithRelations` |
+| `PolicyPlanRepository` | `findByPolicyIdAndIsActiveTrue`, `findByIdAndIsActiveTrue`, `findByIdWithPolicy` (JOIN FETCH) |
+| `PolicyEnrollmentRepository` | `findByCustomerId`, `findByPolicyPlan_Policy_Id`, `findByEnrollmentNumber`, `countByStatus`, `findByIdWithDetails`, `findAllWithDetails`, `findByPolicyCreatorId` |
+| `ClaimRepository` | `findByCustomerId`, `findByStatus`, `findByClaimNumber`, `countByStatus`, `findByIdWithDetails`, `findByCustomerIdWithDetails`, `findByPolicyCreatorId`, `findByPolicyCreatorIdAndStatus` |
+| `EnrollmentPersonRepository` | (exists) |
+
+### Authentication Pattern in Controllers
+Controllers extract the current user via `SecurityContextHolder`:
+```java
+CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
+        .getAuthentication().getPrincipal();
+Long userId = userDetails.getUser().getId();
+```
+
+### Admin Data Scoping
+Admin endpoints for enrollments and claims are scoped to policies the admin created (`Policy.createdBy`), not all records globally. Repository queries filter by `p.createdBy.id = :adminId`.
 
 ## Security
 
@@ -90,6 +116,7 @@ Method-level security enabled via `@EnableMethodSecurity`.
 - `spring.jpa.hibernate.ddl-auto=update` — schema auto-updates on startup; no migration tool (Flyway/Liquibase) configured
 - `spring.jpa.show-sql=true` — SQL logged to console in dev
 - `com.jwt.secret` — HMAC signing key for JWT tokens
+- `data.sql` seeds users, categories, policies, plans, enrollments, and claims via `INSERT IGNORE`; default password for all seed users is `Password@123`
 
 ## Build & Run
 ```powershell
@@ -118,5 +145,7 @@ Method-level security enabled via `@EnableMethodSecurity`.
 | `controller/AuthController.java` | Auth endpoints (register, login, me) |
 | `dto/PolicyCategoryRequest.java` | Example DTO pattern (Lombok `@Data`) |
 | `dto/PolicyResponse.java` | Response DTO with static `from(Entity)` factory method pattern |
+| `controller/GlobalExceptionHandler.java` | `@RestControllerAdvice` for validation error responses |
+| `resources/data.sql` | Seed data (INSERT IGNORE) for dev/testing |
 | `application.properties` | DB config, JWT secret; no profiles defined yet |
 
