@@ -1,13 +1,11 @@
 package com.cognizant.insurance.controller;
-//
-//Register: POST /api/auth/register with {"fullName", "email", "password", "phone", "role"}
-//Login: POST /api/auth/login with {"email", "password"} → returns {token, userId, email, role, fullName}
-//Authenticated requests: Add header Authorization: Bearer <token>
-//
 
+import com.cognizant.insurance.dto.LoginRequest;
+import com.cognizant.insurance.dto.RegisterRequest;
 import com.cognizant.insurance.entity.enums.Role;
 import com.cognizant.insurance.security.CustomUserDetails;
 import com.cognizant.insurance.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,7 +17,6 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -27,30 +24,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> request) {
-        String fullName = request.get("fullName");
-        String email = request.get("email");
-        String password = request.get("password");
-        String phone = request.get("phone");
-
-        if (fullName == null || email == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "fullName, email, and password are required"));
-        }
-
-        Map<String, Object> response = authService.register(fullName, email, password, phone, Role.CUSTOMER);
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
+        String phone = (request.getPhone() != null && request.getPhone().isBlank()) ? null : request.getPhone();
+        Map<String, Object> response = authService.register(
+                request.getFullName().trim(),
+                request.getEmail().trim(),
+                request.getPassword(),
+                phone,
+                Role.CUSTOMER
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String password = request.get("password");
-
-        if (email == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "email and password are required"));
-        }
-
-        Map<String, Object> response = authService.login(email, password);
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
+        Map<String, Object> response = authService.login(request.getEmail().trim(), request.getPassword());
         return ResponseEntity.ok(response);
     }
 
@@ -63,4 +51,3 @@ public class AuthController {
         ));
     }
 }
-

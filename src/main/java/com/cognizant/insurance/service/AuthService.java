@@ -59,6 +59,8 @@ public class AuthService implements UserDetailsService {
             throw new IllegalArgumentException("Phone number already registered");
         }
 
+
+
         User user = new User();
         user.setFullName(fullName);
         user.setEmail(email);
