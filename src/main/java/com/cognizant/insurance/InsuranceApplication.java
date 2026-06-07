@@ -1,5 +1,6 @@
 package com.cognizant.insurance;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -8,6 +9,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
 public class InsuranceApplication {
+
+    @Value("FRONTEND_URL")
+    private String frontend_url;
 
 	public static void main(String[] args) {
 		SpringApplication.run(InsuranceApplication.class, args);
@@ -19,7 +23,7 @@ public class InsuranceApplication {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**")
-						.allowedOrigins("http://localhost:4200")
+						.allowedOrigins(frontend_url)
 						.allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
 						.allowedHeaders("*")
 						.exposedHeaders("Authorization")

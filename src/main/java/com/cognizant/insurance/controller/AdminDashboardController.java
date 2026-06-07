@@ -36,7 +36,7 @@ public class AdminDashboardController {
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getAllCustomers() {
-        List<User> customers = userRepository.findByRole(Role.CUSTOMER);
+        List<User> customers = userRepository.findByRole(Role.CUSTOMER); //bug
         List<UserResponse> response = customers.stream().map(u -> {
             UserResponse dto = new UserResponse();
             dto.setUserId(u.getId());
