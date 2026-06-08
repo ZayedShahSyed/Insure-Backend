@@ -2,6 +2,7 @@ package com.cognizant.insurance.entity;
 
 import com.cognizant.insurance.entity.enums.PolicyType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -50,9 +51,13 @@ public class Policy {
     private Map<String, Object> documents;
 
     @Column(name = "min_age")
+    @NonNull
+    @Min(0)
     private Integer minAge;
 
     @Column(name = "max_age")
+    @NonNull
+    @Min(1)
     private Integer maxAge;
 
     @Column(name = "waiting_period_days")

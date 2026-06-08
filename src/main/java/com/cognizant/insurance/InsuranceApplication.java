@@ -23,7 +23,7 @@ public class InsuranceApplication {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**")
-						.allowedOrigins(frontend_url)
+						.allowedOrigins("http://localhost:4200")
 						.allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
 						.allowedHeaders("*")
 						.exposedHeaders("Authorization")
