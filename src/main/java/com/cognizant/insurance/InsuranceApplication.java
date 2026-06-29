@@ -23,7 +23,7 @@ public class InsuranceApplication {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**")
-						.allowedOrigins("https://insure-frontend.vercel.app/")
+						.allowedOrigins("https://insure-frontend-kz6k.onrender.com/")
 						.allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
 						.allowedHeaders("*")
 						.exposedHeaders("Authorization")
